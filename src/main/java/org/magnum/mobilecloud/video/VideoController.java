@@ -18,6 +18,8 @@
 
 package org.magnum.mobilecloud.video;
 
+import java.io.IOException;
+import java.security.Principal;
 import java.util.Collection;
 
 import javax.servlet.http.HttpServletRequest;
@@ -25,16 +27,21 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.magnum.mobilecloud.video.client.VideoSvcApi;
 import org.magnum.mobilecloud.video.repository.Video;
+import org.magnum.mobilecloud.video.repository.VideoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class VideoController implements VideoSvcApi {
+public class VideoController{
 	
 	/**
 	 * You will need to create one or more Spring controllers to fulfill the
@@ -52,54 +59,89 @@ public class VideoController implements VideoSvcApi {
                                                                                                                                                                                                                                                                         
 	 * 
 	 */
+	
 	@Autowired
-	public VideoRepository VideoRepository;	
+	private VideoRepository videoRepository;	
 
 	@GetMapping(VideoSvcApi.VIDEO_SVC_PATH)
 	public Collection<Video> getVideoList() {
-		return (Collection<Video>) VideoRepository.findAll();
+		return (Collection<Video>) videoRepository.findAll();
 	}
 
 	@PostMapping(VideoSvcApi.VIDEO_SVC_PATH)
 	public Video addVideo(@RequestBody Video v) {
-		return VideoRepository.save(v);
+		return videoRepository.save(v);
 	}
 
 	@GetMapping(VideoSvcApi.VIDEO_SVC_PATH + "/{id}")
 	public Video getVideoById(@PathVariable("id") long id) {
-		return VideoRepository.findOne(id);
+		return videoRepository.findById(id);
 	}
 	
 	@PostMapping(VideoSvcApi.VIDEO_SVC_PATH + "/{id}/like")
-	public Void likeVideo(@PathVariable("id") long id, HttpServletResponse resp) {
-		Video v = VideoRepository.findOne(id);
+	public void likeVideo(@PathVariable("id") long id,
+						  Principal user,
+						  HttpServletResponse resp) throws IOException {
+		Video v = videoRepository.findById(id);
 		if(v == null){
-			resp.setStatus(404);
-			return null;
+			resp.sendError(404);
+			return;
 		}
+		String user_name = user.getName();
+		if (v.UserhasLiked(user_name)) {
+			resp.sendError(400);
+			return;
+		}
+		v.addLikedBy(user_name);
 		v.setLikes(v.getLikes() + 1);
-		VideoRepository.save(v);
+		videoRepository.save(v);
 	}
 
 	@PostMapping(VideoSvcApi.VIDEO_SVC_PATH + "/{id}/unlike")
-	public Void unlikeVideo(@PathVariable("id") long id, HttpServletResponse resp) {
-		Video v = VideoRepository.findOne(id);
+	public void unlikeVideo(@PathVariable("id") long id,
+							Principal user,
+							HttpServletResponse resp) throws IOException {
+		Video v = videoRepository.findById(id);
 		if(v == null){
-			resp.setStatus(404);
-			return null;
+			resp.sendError(404);
+			return;
 		}
+		String user_name = user.getName();
+		if (!v.UserhasLiked(user_name)) {
+			resp.sendError(400);
+			return;
+		}
+		v.removeLikedBy(user_name);
 		v.setLikes(v.getLikes() - 1);
-		VideoRepository.save(v);
+		videoRepository.save(v);
 	}
 
 	@GetMapping(VideoSvcApi.VIDEO_TITLE_SEARCH_PATH)
 	public Collection<Video> findByTitle(@RequestParam(VideoSvcApi.TITLE_PARAMETER) String title) {
-		return VideoRepository.findByName(title);
+		return videoRepository.findByName(title);
 	}
 
 	@GetMapping(VideoSvcApi.VIDEO_DURATION_SEARCH_PATH)
 	public Collection<Video> findByDurationLessThen(@RequestParam(VideoSvcApi.DURATION_PARAMETER) long duration) {
-		return VideoRepository.findByDurationLessThan(duration);
+		return videoRepository.findByDurationLessThan(duration);
 	}
+
+//	@Override
+//	public Void likeVideo(long id) {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
+//
+//	@Override
+//	public Void unlikeVideo(long id) {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
+//
+//	@Override
+//	public Collection<Video> findByDurationLessThan(long duration) {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
 
 }

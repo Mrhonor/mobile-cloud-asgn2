@@ -99,6 +99,18 @@ public class Video {
 		this.likedBy = likedBy;
 	}
 	
+	public boolean UserhasLiked(String name) {
+		return this.likedBy.contains(name);
+	}
+	
+	public void addLikedBy(String name){
+		this.likedBy.add(name);
+	}
+	
+	public void removeLikedBy(String name) {
+		this.likedBy.remove(name);
+	}
+	
 	/**
 	 * Two Videos will generate the same hashcode if they have exactly the same
 	 * values for their name, url, and duration.
