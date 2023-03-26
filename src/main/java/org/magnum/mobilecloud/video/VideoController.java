@@ -18,13 +18,23 @@
 
 package org.magnum.mobilecloud.video;
 
+import java.util.Collection;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.magnum.mobilecloud.video.client.VideoSvcApi;
+import org.magnum.mobilecloud.video.repository.Video;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-@Controller
-public class AnEmptyController {
+@RestController
+public class VideoController implements VideoSvcApi {
 	
 	/**
 	 * You will need to create one or more Spring controllers to fulfill the
@@ -42,10 +52,54 @@ public class AnEmptyController {
                                                                                                                                                                                                                                                                         
 	 * 
 	 */
-	
-	@RequestMapping(value="/go",method=RequestMethod.GET)
-	public @ResponseBody String goodLuck(){
-		return "Good Luck!";
+	@Autowired
+	public VideoRepository VideoRepository;	
+
+	@GetMapping(VideoSvcApi.VIDEO_SVC_PATH)
+	public Collection<Video> getVideoList() {
+		return (Collection<Video>) VideoRepository.findAll();
+	}
+
+	@PostMapping(VideoSvcApi.VIDEO_SVC_PATH)
+	public Video addVideo(@RequestBody Video v) {
+		return VideoRepository.save(v);
+	}
+
+	@GetMapping(VideoSvcApi.VIDEO_SVC_PATH + "/{id}")
+	public Video getVideoById(@PathVariable("id") long id) {
+		return VideoRepository.findOne(id);
 	}
 	
+	@PostMapping(VideoSvcApi.VIDEO_SVC_PATH + "/{id}/like")
+	public Void likeVideo(@PathVariable("id") long id, HttpServletResponse resp) {
+		Video v = VideoRepository.findOne(id);
+		if(v == null){
+			resp.setStatus(404);
+			return null;
+		}
+		v.setLikes(v.getLikes() + 1);
+		VideoRepository.save(v);
+	}
+
+	@PostMapping(VideoSvcApi.VIDEO_SVC_PATH + "/{id}/unlike")
+	public Void unlikeVideo(@PathVariable("id") long id, HttpServletResponse resp) {
+		Video v = VideoRepository.findOne(id);
+		if(v == null){
+			resp.setStatus(404);
+			return null;
+		}
+		v.setLikes(v.getLikes() - 1);
+		VideoRepository.save(v);
+	}
+
+	@GetMapping(VideoSvcApi.VIDEO_TITLE_SEARCH_PATH)
+	public Collection<Video> findByTitle(@RequestParam(VideoSvcApi.TITLE_PARAMETER) String title) {
+		return VideoRepository.findByName(title);
+	}
+
+	@GetMapping(VideoSvcApi.VIDEO_DURATION_SEARCH_PATH)
+	public Collection<Video> findByDurationLessThen(@RequestParam(VideoSvcApi.DURATION_PARAMETER) long duration) {
+		return VideoRepository.findByDurationLessThan(duration);
+	}
+
 }
